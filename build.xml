@@ -1,0 +1,33 @@
+<!-- Ant build script for EpsilonDelta Java lib -->
+
+<project default="all">
+  <property name="obj-dir" location="classes" />
+  <property name="jar-dir" location="." />
+
+  <target name="init">
+    <mkdir dir="${obj-dir}" />
+  </target>
+  <target name="clean-init">
+    <delete dir="${obj-dir}" />
+  </target>
+
+  <target name="compile" depends="init">
+    <javac srcdir="util" destdir="${obj-dir}" />
+    <javac srcdir="math" destdir="${obj-dir}" />
+  </target>
+  <target name="clean-compile">
+    <delete>
+      <fileset dir="${obj-dir}" includes="**/*.class" />
+    </delete>
+  </target>
+
+  <target name="jar" depends="compile">
+    <jar destfile="${jar-dir}/javaEpsilonDelta.jar" basedir="${obj-dir}" />
+  </target>
+  <target name="clean-jar">
+    <delete file="${jar-dir}/javaEpsilonDelta.jar" />
+  </target>
+
+  <target name="all" depends="jar" />
+  <target name="clean" depends="clean-init" />
+</project>

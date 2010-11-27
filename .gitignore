@@ -1,0 +1,8 @@
+# These files should be ignored by git: we don't want them under version control
+
+# Temp and backup files:
+*~
+
+# Compiled files (object files, libraries, executables, etc.):
+classes/*
+*.jar
