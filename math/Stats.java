@@ -116,7 +116,7 @@ public class Stats
     public static
     TTestResult
     meanTest( int sampleSize, double sampleMean, double sampleVariance,
-              double hypothMean, int tails )
+              double hypothMean, Tail tail )
     {
         if ( sampleSize <= 1 )
             throw new IllegalArgumentException( "meanTest: sampleSize <= 1" );
@@ -138,10 +138,10 @@ public class Stats
             t = (sampleMean - hypothMean) * Math.sqrt( (double) sampleSize )
                     / Math.sqrt( sampleVariance );
             prob = ProbDist.t_DF( t, degreesOfFreedom );
-            if ( t > 0 )
+            if ( tail == Tail.UPPER )
                 prob = 1. - prob;
-            if ( tails == 2 )
-                prob *= 2.;
+            else if ( tail == Tail.BOTH )
+                prob = 2. * Math.min( prob, 1. - prob );
         }
         return new TTestResult( prob, t, degreesOfFreedom );
     }
@@ -151,7 +151,7 @@ public class Stats
     public static
     ChiSquareTestResult
     varianceTest( int sampleSize, double sampleVariance, double hypothVariance,
-                  int tails )
+                  Tail tail )
     {
         if ( sampleSize <= 1 )
             throw new IllegalArgumentException( "varianceTest: "
@@ -175,10 +175,10 @@ public class Stats
             chiSquare = sampleVariance * (sampleSize - 1.) / hypothVariance;
             prob = ProbDist.chiSquare_DF( chiSquare, degreesOfFreedom );
         }
-        if ( sampleVariance > hypothVariance )
+        if ( tail == Tail.UPPER )
             prob = 1. - prob;
-        if ( tails == 2 )
-            prob *= 2.;
+        else if ( tail == Tail.BOTH )
+            prob = 2. * Math.min( prob, 1. - prob );
         return new ChiSquareTestResult( prob, chiSquare, degreesOfFreedom );
     }
 
@@ -233,7 +233,7 @@ public class Stats
     TTestResult
     meansTest( int sampleSize1, double sampleMean1, double sampleVariance1,
                int sampleSize2, double sampleMean2, double sampleVariance2,
-               boolean equalVariances, int tails )
+               boolean equalVariances, Tail tail )
     {
         if ( sampleSize1 <= 1 )
             throw new IllegalArgumentException( "meansTest: sampleSize1 <= 1" );
@@ -279,10 +279,10 @@ public class Stats
         {
             t = (sampleMean1 - sampleMean2) / Math.sqrt( pooledVariance );
             prob = ProbDist.t_DF( t, degreesOfFreedom );
-            if ( t > 0 )
+            if ( tail == Tail.UPPER )
                 prob = 1. - prob;
-            if ( tails == 2 )
-                prob *= 2.;
+            else if ( tail == Tail.BOTH )
+                prob = 2. * Math.min( prob, 1. - prob );
         }
         return new TTestResult( prob, t, degreesOfFreedom );
     }
@@ -293,7 +293,7 @@ public class Stats
     FTestResult
     variancesTest( int sampleSize1, double sampleVariance1,
                    int sampleSize2, double sampleVariance2,
-                   int tails )
+                   Tail tail )
     {
         if ( sampleSize1 <= 1 )
             throw new IllegalArgumentException( "variancesTest: "
@@ -320,10 +320,10 @@ public class Stats
         {
             f = sampleVariance1 / sampleVariance2;
             prob = ProbDist.F_DF( f, dof1, dof2 );
-            if ( f > 1. )
+            if ( tail == Tail.UPPER )
                 prob = 1. - prob;
-            if ( tails == 2 )
-                prob *= 2.;
+            else if ( tail == Tail.BOTH )
+                prob = 2. * Math.min( prob, 1. - prob );
         }
         return new FTestResult( prob, f, dof1, dof2 );
     }
@@ -333,7 +333,7 @@ public class Stats
     public static
     double 
     mediansTest( final List< Double > sample1,
-                 final List< Double > sample2, int tails )
+                 final List< Double > sample2, Tail tail )
     {
         List< Double > grandSample = new ArrayList< Double >();
         grandSample.addAll( sample1 );
@@ -350,11 +350,17 @@ public class Stats
         }
         int grandSize = grandSample.size();
         int sampleSize1 = sample1.size();
-        int x = Math.min( numBelowMedian, numAboveMedian );
+        int x = 0;
+        if ( tail == Tail.LOWER )
+            x = numAboveMedian;
+        else if ( tail == Tail.UPPER )
+            x = numBelowMedian;
+        else //Tail.BOTH
+            x = Math.min( numBelowMedian, numAboveMedian );
         double prob = ProbDist.hypergeometric_DF( x, grandSize, grandSize / 2,
                                                   sampleSize1 );
-        if ( tails == 2 )
-            prob *= 2.;
+        if ( tail == Tail.BOTH )
+            prob = 2. * Math.min( prob, 1. - prob );
         return prob;
     }
 
@@ -413,7 +419,7 @@ public class Stats
 
     public static
     CorrelationTestResult
-    linearCorrelationTest( final List< double[] > samples, int tails )
+    linearCorrelationTest( final List< double[] > samples, Tail tail )
     {
         int sampleSize = samples.size();
         if ( sampleSize < 3 )
@@ -476,10 +482,10 @@ public class Stats
         {
             t = r * Math.sqrt( (sampleSize - 2.) / (1. - r * r) );
             prob = ProbDist.t_DF( t, degreesOfFreedom );
-            if ( t > 0. )
+            if ( tail == Tail.UPPER )
                 prob = 1. - prob;
-            if ( tails == 2 )
-                prob *= 2.;
+            else if ( tail == Tail.BOTH )
+                prob = 2. * Math.min( prob, 1. - prob );
         }
         return new CorrelationTestResult(
             new TTestResult( prob, t, degreesOfFreedom ),
@@ -518,75 +524,81 @@ public class Stats
     
 //=============================================================================
 
-/*!!!
-  namespace
-  {                                                                   //namespace
+    private static
+    class ComparatorOnIndex
+        implements Comparator< double[] >
+    {                                                       //ComparatorOnIndex
+    //-------------------------------------------------------------------------
 
-  class CompareArrays2
-  {
-  public:
-  CompareArrays2( int index )
-  :   m_index( index )
-  {
-  }
+        public
+        ComparatorOnIndex( int index )
+        {
+            m_index = index;
+        }
+        
+    //-------------------------------------------------------------------------
 
-  boolean operator()( final array< double, 2 > & arr1,
-  final array< double, 2 > & arr2 )
-  {
-  return ( arr1[ m_index ] < arr2[ m_index ] );
-  }
+        public
+        int
+        compare( double[] arr1, double[] arr2 )
+        {
+            assert arr1.length > m_index;
+            assert arr2.length > m_index;
+            return arr1[ m_index ] < arr2[ m_index ]  ?  -1
+                    :  arr1[ m_index ] == arr2[ m_index ]  ?  0  :  1;
+        }
+        
+    //-------------------------------------------------------------------------
 
-  private:
-  int m_index;
-  };
-
-  }                                                                   //namespace
-
-*/
+        private int m_index;
+        
+    //-------------------------------------------------------------------------
+    }                                                       //ComparatorOnIndex
 
 //.............................................................................
 
     public static
-    double 
-    spearmansRankCorrelationTest( final List< double[] > samples,
-                                  Double spearmansR, Double t )
+    CorrelationTestResult
+    spearmansRankCorrelationTest( final List< double[] > samples, Tail tail )
     {
-/*!!!
-  int sampleSize = samples.size();
-  if ( sampleSize <= 3 )
-  throw new IllegalArgumentException( "spearmansRankCorrelationTest: "
-  + "sampleSize <= 3" );
-//!!!
-List< double[2] > ranks = samples;
-for ( int i = 0; i < 2; ++i )
-{
-Collections.sort( ranks, CompareArrays2( i ) );
-int j = 1;
-while ( j < sampleSize )
-{
-if ( ranks[ j - 1 ][ i ] != ranks[ j ][ i ] )
-{
-ranks[ j - 1 ][ i ] = j;
-++j;
-}
-else
-{
-int k = j + 1;
-while ( (k <= sampleSize)
-&& (ranks[ k - 1 ][ i ] == ranks[ j - 1 ][ i ]) )
-++k;
-double aveRank = 0.5 * (j + k - 1);
-for ( int m = j; m <= k - 1; ++m )
-ranks[ m - 1 ][ i ] = aveRank;
-j = k;
-}
-}
-if ( j == sampleSize )
-ranks[ j - 1 ][ i ] = j;
-}
-return LinearCorrelationTest( ranks, pSpearmansR, pT );
-*/
-        return 0.; //!!!
+
+        int sampleSize = samples.size();
+        if ( sampleSize <= 3 )
+            throw new IllegalArgumentException( "spearmansRankCorrelationTest: "
+                                                + "sampleSize <= 3" );
+        List< double[] > ranks = samples;
+        for ( int i = 0; i < sampleSize; ++i )
+        {
+            ranks.add( new double[ 2 ] );
+        }
+        for ( int i = 0; i < 2; ++i )
+        {
+            Collections.sort( ranks, new ComparatorOnIndex( i ) );
+            int j = 1;
+            while ( j < sampleSize )
+            {
+                if ( ranks.get( j - 1 )[ i ] != ranks.get( j )[ i ] )
+                {
+                    ranks.get( j - 1 )[ i ] = j;
+                    ++j;
+                }
+                else
+                {
+                    int k = j + 1;
+                    while ( (k <= sampleSize)
+                            && (ranks.get( k - 1 )[ i ]
+                                == ranks.get( j - 1 )[ i ]) )
+                        ++k;
+                    double aveRank = 0.5 * (j + k - 1);
+                    for ( int m = j; m <= k - 1; ++m )
+                        ranks.get( m - 1 )[ i ] = aveRank;
+                    j = k;
+                }
+            }
+            if ( j == sampleSize )
+                ranks.get( j - 1 )[ i ] = j;
+        }
+        return linearCorrelationTest( ranks, tail );
     }
 
 //-----------------------------------------------------------------------------
@@ -800,6 +812,34 @@ return LinearCorrelationTest( ranks, pSpearmansR, pT );
         }
         return prob;
     }
+
+//=============================================================================
+
+    public
+    enum Tail
+    {                                                                    //Tail
+    //-------------------------------------------------------------------------
+
+        LOWER( "≥", "<" ),
+        UPPER( "≤", ">" ),
+        BOTH( "=", "≠" );
+
+    //=========================================================================
+
+        private
+        Tail( String h0RelationSymbol, String h1RelationSymbol )
+        {
+            this.h0RelationSymbol = h0RelationSymbol;
+            this.h1RelationSymbol = h1RelationSymbol;
+        }
+        
+    //=========================================================================
+
+        public final String h0RelationSymbol;
+        public final String h1RelationSymbol;
+        
+    //-------------------------------------------------------------------------
+    }                                                                    //Tail
 
 //=============================================================================
 
