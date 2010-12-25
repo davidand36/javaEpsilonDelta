@@ -6,14 +6,16 @@
 
   <target name="init">
     <mkdir dir="${obj-dir}" />
+    <mkdir dir="${obj-dir}/util" />
+    <mkdir dir="${obj-dir}/math" />
   </target>
   <target name="clean-init">
     <delete dir="${obj-dir}" />
   </target>
 
   <target name="compile" depends="init">
-    <javac srcdir="util" destdir="${obj-dir}" />
-    <javac srcdir="math" destdir="${obj-dir}" />
+    <javac srcdir="util" destdir="${obj-dir}/util" includeAntRuntime="false" />
+    <javac srcdir="math" destdir="${obj-dir}/math" includeAntRuntime="false" />
   </target>
   <target name="clean-compile">
     <delete>
@@ -22,10 +24,11 @@
   </target>
 
   <target name="jar" depends="compile">
-    <jar destfile="${jar-dir}/javaEpsilonDelta.jar" basedir="${obj-dir}" />
+    <jar destfile="${jar-dir}/javaEpsilonDelta_util.jar" basedir="${obj-dir}/util" />
+    <jar destfile="${jar-dir}/javaEpsilonDelta_math.jar" basedir="${obj-dir}/math" />
   </target>
   <target name="clean-jar">
-    <delete file="${jar-dir}/javaEpsilonDelta.jar" />
+    <delete file="${jar-dir}/*.jar" />
   </target>
 
   <target name="all" depends="jar" />
