@@ -43,7 +43,8 @@ import java.util.*;
 //*****************************************************************************
 
 
-public class Stats
+public
+class Stats
 {                                                                       //Stats
 //-----------------------------------------------------------------------------
 
@@ -128,7 +129,12 @@ public class Stats
         int degreesOfFreedom = sampleSize - 1;
         if ( sampleVariance == 0. )
         {
-            prob = (sampleMean == hypothMean) ? 1. : 0.;
+            if ( (sampleMean == hypothMean)
+                 || ( (tail == Tail.LOWER) && (sampleMean >= hypothMean) )
+                 || ( (tail == Tail.UPPER) && (sampleMean <= hypothMean) ) )
+                prob = 1.;
+            else
+                prob = 0.;
             t = (sampleMean == hypothMean) ? 0.
                     : (sampleMean < hypothMean) ? Double.NEGATIVE_INFINITY
                     : Double.POSITIVE_INFINITY;
@@ -270,7 +276,12 @@ public class Stats
         assert pooledVariance >= 0.;
         if ( pooledVariance == 0. )
         {
-            prob = (sampleMean1 == sampleMean2) ? 1. : 0.;
+            if ( (sampleMean1 == sampleMean2)
+                 || ( (tail == Tail.LOWER) && (sampleMean1 >= sampleMean2) )
+                 || ( (tail == Tail.UPPER) && (sampleMean1 <= sampleMean2) ) )
+                prob = 1.;
+            else
+                prob = 0.;
             t = (sampleMean1 == sampleMean2) ? 0.
                     : (sampleMean1 < sampleMean2) ? Double.NEGATIVE_INFINITY
                     : Double.POSITIVE_INFINITY;
@@ -692,8 +703,8 @@ public class Stats
             }
         }
         if ( sampleTotal <= 0 )
-            throw new IllegalArgumentException(
-                "chiSquareContingencyTableTest: sampleTotal <= 0" );
+            return new ContingencyTableResult(
+                new ChiSquareTestResult( 1., 0., 0 ), 0, 0 );
         int nRows = numRows;
         int nCols = numColumns;
         double chiSquare = 0.;
