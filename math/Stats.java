@@ -704,7 +704,8 @@ class Stats
         }
         if ( sampleTotal <= 0 )
             return new ContingencyTableResult(
-                new ChiSquareTestResult( 1., 0., 0 ), 0, 0 );
+                new ChiSquareTestResult( 1., 0., 0 ),
+                0, sampleTotal, rowTotals, columnTotals );
         int nRows = numRows;
         int nCols = numColumns;
         double chiSquare = 0.;
@@ -743,12 +744,12 @@ class Stats
         if ( degreesOfFreedom <= 0 )
             return new ContingencyTableResult(
                 new ChiSquareTestResult( 1., chiSquare, degreesOfFreedom ),
-                minExpectedCellFreq, sampleTotal );
+                minExpectedCellFreq, sampleTotal, rowTotals, columnTotals );
                 
         double prob = 1. - ProbDist.chiSquare_DF( chiSquare, degreesOfFreedom );
         return new ContingencyTableResult(
             new ChiSquareTestResult( prob, chiSquare, degreesOfFreedom ),
-            minExpectedCellFreq, sampleTotal );
+            minExpectedCellFreq, sampleTotal, rowTotals, columnTotals );
     }
 
 //.............................................................................
@@ -1028,11 +1029,14 @@ class Stats
         public
         ContingencyTableResult( ChiSquareTestResult chiSquareResult,
                                 double minExpectedCellFreq,
-                                int sampleTotal )
+                                int sampleTotal,
+                                int[] rowTotals, int[] columnTotals )
         {
             this.chiSquareResult = chiSquareResult;
             this.minExpectedCellFreq = minExpectedCellFreq;
             this.sampleTotal = sampleTotal;
+            this.rowTotals = rowTotals;
+            this.columnTotals = columnTotals;
         }
 
     //=========================================================================
@@ -1040,6 +1044,8 @@ class Stats
         public final ChiSquareTestResult chiSquareResult;
         public final double minExpectedCellFreq;
         public final int sampleTotal;
+        public final int[] rowTotals;
+        public final int[] columnTotals;
         
     //-------------------------------------------------------------------------
     }                                                  //ContingencyTableResult
