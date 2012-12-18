@@ -262,21 +262,19 @@ class SpecFunc
     double 
     erf( double x )
     {
-/*!!!
         //See Press, et al., "Numerical Recipes in C++", 2nd ed., p. 226.
-        final Polynomial< double >
-                poly( 9, -1.26551223, 1.00002368, 0.37409196, 0.09678418,
-                      -0.18628806, 0.27886807, -1.13520398, 1.48851587,
-                      -0.82215223, 0.17087277 );
+        final Polynomial poly =
+                new Polynomial( -1.26551223, 1.00002368, 0.37409196,
+                                0.09678418, -0.18628806, 0.27886807,
+                                -1.13520398, 1.48851587, -0.82215223,
+                                0.17087277 );
         double y = Math.abs( x );
         double z = 1. / (1. + 0.5 * y);
-        double e = z * Math.exp( -y * y  +  poly( z ) );
+        double e = z * Math.exp( -y * y  +  poly.evaluate( z ) );
         if ( x >= 0. )
             return 1. - e;
         else
             return e - 1.;
-*/
-        return 0.;
     }
 
 //=============================================================================
