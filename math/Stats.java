@@ -662,11 +662,10 @@ class Stats
         double variance = (4. * sampleSize  +  10.)
                 / (9. * sampleSize * (sampleSize - 1.));
         double prob = ProbDist.normal_DF( kendallsTau, 0., variance );
-        //Two-tailed test
-        if ( kendallsTau < 0 )
-            prob = 2. * prob;
-        else
-            prob = 2. * (1. - prob);
+        if ( tail == Tail.UPPER )
+            prob = 1. - prob;
+        else if ( tail == Tail.BOTH )
+            prob = 2. * Math.min( prob, 1. - prob );
         return new NormalTestResult( prob, kendallsTau, 0., variance );
     }
 
